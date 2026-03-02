@@ -10,6 +10,7 @@ import { createAppointmentHistoryMessage } from './flows/appointmentHistoryFlow'
 import { createUpcomingAppointmentsMessage } from './flows/upcomingAppointmentsFlow';
 import { createRescheduleAppointmentMessage } from './flows/rescheduleAppointmentFlow';
 import { createAppointmentSummaryMessage } from './flows/appointmentSummaryFlow';
+import { designWidgetFromPrompt } from './llm/widgetDesigner';
 
 function App() {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -33,81 +34,104 @@ function App() {
         setInput('');
         setIsProcessing(true);
 
-        try {
-            const intentResult = await classifyIntent(trimmed);
+	        try {
+	            const intentResult = await classifyIntent(trimmed);
 
-            if (intentResult.intent === 'book_appointment' && intentResult.confidence > 0.4) {
-                const assistant = await createBookAppointmentMessage(trimmed);
-                appendMessage(assistant);
-                return;
-            }
+	            if (intentResult.intent === 'book_appointment' && intentResult.confidence > 0.4) {
+	                const assistant = await createBookAppointmentMessage(trimmed);
+	                appendMessage(assistant);
+	                return;
+	            }
 
-            if (
-                intentResult.intent === 'show_appointment_history' &&
-                intentResult.confidence > 0.4
-            ) {
-                const assistant = await createAppointmentHistoryMessage();
-                appendMessage(assistant);
-                return;
-            }
+	            if (
+	                intentResult.intent === 'show_appointment_history' &&
+	                intentResult.confidence > 0.4
+	            ) {
+	                const assistant = await createAppointmentHistoryMessage();
+	                appendMessage(assistant);
+	                return;
+	            }
 
-            if (
-                intentResult.intent === 'show_upcoming_appointments' &&
-                intentResult.confidence > 0.4
-            ) {
-                const assistant = await createUpcomingAppointmentsMessage();
-                appendMessage(assistant);
-                return;
-            }
+	            if (
+	                intentResult.intent === 'show_upcoming_appointments' &&
+	                intentResult.confidence > 0.4
+	            ) {
+	                const assistant = await createUpcomingAppointmentsMessage();
+	                appendMessage(assistant);
+	                return;
+	            }
 
-            if (intentResult.intent === 'reschedule_appointment' && intentResult.confidence > 0.4) {
-                const assistant = createRescheduleAppointmentMessage();
-                appendMessage(assistant);
-                return;
-            }
+	            if (intentResult.intent === 'reschedule_appointment' && intentResult.confidence > 0.4) {
+	                const assistant = createRescheduleAppointmentMessage();
+	                appendMessage(assistant);
+	                return;
+	            }
 
-            if (
-                intentResult.intent === 'show_appointment_summary' &&
-                intentResult.confidence > 0.4
-            ) {
-                const assistant = await createAppointmentSummaryMessage();
-                appendMessage(assistant);
-                return;
-            }
+	            if (
+	                intentResult.intent === 'show_appointment_summary' &&
+	                intentResult.confidence > 0.4
+	            ) {
+	                const assistant = await createAppointmentSummaryMessage();
+	                appendMessage(assistant);
+	                return;
+	            }
 
-            // Unknown intent → let the LLM answer normally as a chatbot.
-            try {
-                const replyText = await ollamaChat([
-                    {
-                        role: 'system',
-                        content:
-                            'You are a helpful, concise assistant. Respond conversationally to the user.',
-                    },
-                    { role: 'user', content: trimmed },
-                ]);
-                const assistant: AssistantMessage = {
-                    id: `a-${Date.now()}`,
-                    role: 'assistant',
-                    parts: [{ type: 'text', text: replyText }],
-                };
-                appendMessage(assistant);
-            } catch (err) {
-                console.error('Fallback chat with Ollama failed:', err);
-                const assistant: AssistantMessage = {
-                    id: `a-${Date.now()}`,
-                    role: 'assistant',
-                    parts: [
-                        {
-                            type: 'text',
-                            text: "I'm having trouble contacting the language model right now.",
-                        },
-                    ],
-                };
-                appendMessage(assistant);
-            }
-        } finally {
-            setIsProcessing(false);
-        }
+	            if (intentResult.intent === 'design_widget' && intentResult.confidence > 0.4) {
+	                const designed = await designWidgetFromPrompt(trimmed);
+	                if (designed) {
+	                    const assistant: AssistantMessage = {
+	                        id: `a-${Date.now()}`,
+	                        role: 'assistant',
+	                        parts: [
+	                            {
+	                                type: 'text',
+	                                text: 'Here is the UI you asked for.',
+	                            },
+	                            {
+	                                type: 'widget',
+	                                widgetId: designed.widgetId,
+	                                props: designed.props,
+	                            },
+	                        ],
+	                    };
+	                    appendMessage(assistant);
+	                    return;
+	                }
+	            }
+
+	            // Unknown or low-confidence intent → let the LLM answer normally as a chatbot.
+	            try {
+	                const replyText = await ollamaChat([
+	                    {
+	                        role: 'system',
+	                        content:
+	                            'You are a helpful, concise assistant. Respond conversationally to the user.',
+	                    },
+	                    { role: 'user', content: trimmed },
+	                ]);
+	                const assistant: AssistantMessage = {
+	                    id: `a-${Date.now()}`,
+	                    role: 'assistant',
+	                    parts: [{ type: 'text', text: replyText }],
+	                };
+	                appendMessage(assistant);
+	            } catch (err) {
+	                console.error('Fallback chat with Ollama failed:', err);
+	                const assistant: AssistantMessage = {
+	                    id: `a-${Date.now()}`,
+	                    role: 'assistant',
+	                    parts: [
+	                        {
+	                            type: 'text',
+	                            text: "I'm having trouble contacting the language model right now.",
+	                        },
+	                    ],
+	                };
+	                appendMessage(assistant);
+	            }
+	        } finally {
+	            setIsProcessing(false);
+	        }
     };
 
     const handleKeyDown: React.KeyboardEventHandler<HTMLInputElement> = (event) => {
