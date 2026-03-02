@@ -36,7 +36,7 @@ File: `src/flows/bookAppointmentFlow.ts`
     - `time` (text)
     - `agent` (text)
 - Initial values are inferred from the user utterance by `src/llm/appointmentFormPrefill.ts` (date/time/agent extraction + simple date normalization: today/tomorrow variants → real ISO date).
-- On submit, `App.tsx` calls `mockBookAppointment` and responds with a confirmation text.
+- The flow attaches an `onSubmit` handler on the widget that calls `mockBookAppointment` and returns a confirmation text message.
 
 ### 2. Appointment history (`show_appointment_history`)
 
@@ -60,7 +60,7 @@ File: `src/flows/rescheduleAppointmentFlow.ts`
     - `appointmentId`
     - `newDate`
     - `newTime`
-- On submit, `App.tsx` calls `mockRescheduleAppointment` and returns a confirmation text.
+- The flow attaches an `onSubmit` handler on the widget that calls `mockRescheduleAppointment` and returns a confirmation text message.
 
 ### 5. Appointment summary (`show_appointment_summary`)
 
@@ -112,7 +112,7 @@ This means the LLM has **controlled access** to the widget catalog and **control
 
 - Which widgets exist.
 - The exact prop schemas.
-- What happens when the widget is submitted.
+- What happens when the widget is submitted (implemented by the flows via widget `onSubmit` handlers).
 
 ---
 
