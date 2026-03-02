@@ -4,7 +4,6 @@ import type { AssistantMessage, ChatMessage, MessagePart, UserMessage } from './
 import { classifyIntent } from './llm/intentRouter';
 import { widgetRegistry } from './widgets/registry';
 import { ollamaChat } from './llm/ollama';
-import { mockBookAppointment, mockRescheduleAppointment } from './mockApi/appointments';
 import { createBookAppointmentMessage } from './flows/bookAppointmentFlow';
 import { createAppointmentHistoryMessage } from './flows/appointmentHistoryFlow';
 import { createUpcomingAppointmentsMessage } from './flows/upcomingAppointmentsFlow';
@@ -34,151 +33,110 @@ function App() {
         setInput('');
         setIsProcessing(true);
 
-	        try {
-	            const intentResult = await classifyIntent(trimmed);
+        try {
+            const intentResult = await classifyIntent(trimmed);
 
-	            if (intentResult.intent === 'book_appointment' && intentResult.confidence > 0.4) {
-	                const assistant = await createBookAppointmentMessage(trimmed);
-	                appendMessage(assistant);
-	                return;
-	            }
+            if (intentResult.intent === 'book_appointment' && intentResult.confidence > 0.4) {
+                const assistant = await createBookAppointmentMessage(trimmed);
+                appendMessage(assistant);
+                return;
+            }
 
-	            if (
-	                intentResult.intent === 'show_appointment_history' &&
-	                intentResult.confidence > 0.4
-	            ) {
-	                const assistant = await createAppointmentHistoryMessage();
-	                appendMessage(assistant);
-	                return;
-	            }
+            if (
+                intentResult.intent === 'show_appointment_history' &&
+                intentResult.confidence > 0.4
+            ) {
+                const assistant = await createAppointmentHistoryMessage();
+                appendMessage(assistant);
+                return;
+            }
 
-	            if (
-	                intentResult.intent === 'show_upcoming_appointments' &&
-	                intentResult.confidence > 0.4
-	            ) {
-	                const assistant = await createUpcomingAppointmentsMessage();
-	                appendMessage(assistant);
-	                return;
-	            }
+            if (
+                intentResult.intent === 'show_upcoming_appointments' &&
+                intentResult.confidence > 0.4
+            ) {
+                const assistant = await createUpcomingAppointmentsMessage();
+                appendMessage(assistant);
+                return;
+            }
 
-	            if (intentResult.intent === 'reschedule_appointment' && intentResult.confidence > 0.4) {
-	                const assistant = createRescheduleAppointmentMessage();
-	                appendMessage(assistant);
-	                return;
-	            }
+            if (intentResult.intent === 'reschedule_appointment' && intentResult.confidence > 0.4) {
+                const assistant = createRescheduleAppointmentMessage();
+                appendMessage(assistant);
+                return;
+            }
 
-	            if (
-	                intentResult.intent === 'show_appointment_summary' &&
-	                intentResult.confidence > 0.4
-	            ) {
-	                const assistant = await createAppointmentSummaryMessage();
-	                appendMessage(assistant);
-	                return;
-	            }
+            if (
+                intentResult.intent === 'show_appointment_summary' &&
+                intentResult.confidence > 0.4
+            ) {
+                const assistant = await createAppointmentSummaryMessage();
+                appendMessage(assistant);
+                return;
+            }
 
-	            if (intentResult.intent === 'design_widget' && intentResult.confidence > 0.4) {
-	                const designed = await designWidgetFromPrompt(trimmed);
-	                if (designed) {
-	                    const assistant: AssistantMessage = {
-	                        id: `a-${Date.now()}`,
-	                        role: 'assistant',
-	                        parts: [
-	                            {
-	                                type: 'text',
-	                                text: 'Here is the UI you asked for.',
-	                            },
-	                            {
-	                                type: 'widget',
-	                                widgetId: designed.widgetId,
-	                                props: designed.props,
-	                            },
-	                        ],
-	                    };
-	                    appendMessage(assistant);
-	                    return;
-	                }
-	            }
+            if (intentResult.intent === 'design_widget' && intentResult.confidence > 0.4) {
+                const designed = await designWidgetFromPrompt(trimmed);
+                if (designed) {
+                    const assistant: AssistantMessage = {
+                        id: `a-${Date.now()}`,
+                        role: 'assistant',
+                        parts: [
+                            {
+                                type: 'text',
+                                text: 'Here is the UI you asked for.',
+                            },
+                            {
+                                type: 'widget',
+                                widgetId: designed.widgetId,
+                                props: designed.props,
+                            },
+                        ],
+                    };
+                    appendMessage(assistant);
+                    return;
+                }
+            }
 
-	            // Unknown or low-confidence intent → let the LLM answer normally as a chatbot.
-	            try {
-	                const replyText = await ollamaChat([
-	                    {
-	                        role: 'system',
-	                        content:
-	                            'You are a helpful, concise assistant. Respond conversationally to the user.',
-	                    },
-	                    { role: 'user', content: trimmed },
-	                ]);
-	                const assistant: AssistantMessage = {
-	                    id: `a-${Date.now()}`,
-	                    role: 'assistant',
-	                    parts: [{ type: 'text', text: replyText }],
-	                };
-	                appendMessage(assistant);
-	            } catch (err) {
-	                console.error('Fallback chat with Ollama failed:', err);
-	                const assistant: AssistantMessage = {
-	                    id: `a-${Date.now()}`,
-	                    role: 'assistant',
-	                    parts: [
-	                        {
-	                            type: 'text',
-	                            text: "I'm having trouble contacting the language model right now.",
-	                        },
-	                    ],
-	                };
-	                appendMessage(assistant);
-	            }
-	        } finally {
-	            setIsProcessing(false);
-	        }
+            // Unknown or low-confidence intent → let the LLM answer normally as a chatbot.
+            try {
+                const replyText = await ollamaChat([
+                    {
+                        role: 'system',
+                        content:
+                            'You are a helpful, concise assistant. Respond conversationally to the user.',
+                    },
+                    { role: 'user', content: trimmed },
+                ]);
+                const assistant: AssistantMessage = {
+                    id: `a-${Date.now()}`,
+                    role: 'assistant',
+                    parts: [{ type: 'text', text: replyText }],
+                };
+                appendMessage(assistant);
+            } catch (err) {
+                console.error('Fallback chat with Ollama failed:', err);
+                const assistant: AssistantMessage = {
+                    id: `a-${Date.now()}`,
+                    role: 'assistant',
+                    parts: [
+                        {
+                            type: 'text',
+                            text: "I'm having trouble contacting the language model right now.",
+                        },
+                    ],
+                };
+                appendMessage(assistant);
+            }
+        } finally {
+            setIsProcessing(false);
+        }
     };
 
     const handleKeyDown: React.KeyboardEventHandler<HTMLInputElement> = (event) => {
         if (event.key === 'Enter' && !event.shiftKey) {
             event.preventDefault();
             void handleSend();
-        }
-    };
-
-    const handleWidgetSubmit = async (part: MessagePart, values: unknown) => {
-        if (part.type !== 'widget') return;
-        if (part.widgetId === 'form' && part.flowId === 'book_appointment') {
-            const castValues = values as Record<string, string>;
-            const result = await mockBookAppointment(castValues);
-            const confirmationMessage: AssistantMessage = {
-                id: `a-${Date.now()}`,
-                role: 'assistant',
-                parts: [
-                    {
-                        type: 'text',
-                        text: `Booked appointment with ${
-                            castValues.agent || 'your selected agent'
-                        } on ${castValues.date || 'your chosen date'} at ${
-                            castValues.time || 'your chosen time'
-                        }. Confirmation: ${result.confirmationId}.`,
-                    },
-                ],
-            };
-            appendMessage(confirmationMessage);
-        } else if (part.widgetId === 'form' && part.flowId === 'reschedule_appointment') {
-            const castValues = values as Record<string, string>;
-            const result = await mockRescheduleAppointment(castValues);
-            const confirmationMessage: AssistantMessage = {
-                id: `a-${Date.now()}`,
-                role: 'assistant',
-                parts: [
-                    {
-                        type: 'text',
-                        text: `Rescheduled appointment ${castValues.appointmentId || ''} to ${
-                            castValues.newDate || 'your new date'
-                        } at ${castValues.newTime || 'your new time'}. Confirmation: ${
-                            result.confirmationId
-                        }.`,
-                    },
-                ],
-            };
-            appendMessage(confirmationMessage);
         }
     };
 
@@ -201,7 +159,7 @@ function App() {
                             ) : (
                                 <AssistantMessageView
                                     parts={message.parts}
-                                    onWidgetSubmit={handleWidgetSubmit}
+                                    appendMessage={appendMessage}
                                 />
                             )}
                         </div>
@@ -230,10 +188,10 @@ function App() {
 
 type AssistantMessageViewProps = {
     parts: MessagePart[];
-    onWidgetSubmit: (part: MessagePart, values: unknown) => void | Promise<void>;
+    appendMessage: (message: AssistantMessage) => void;
 };
 
-function AssistantMessageView({ parts, onWidgetSubmit }: AssistantMessageViewProps) {
+function AssistantMessageView({ parts, appendMessage }: AssistantMessageViewProps) {
     return (
         <div className="assistant-parts">
             {parts.map((part, index) => {
@@ -266,12 +224,19 @@ function AssistantMessageView({ parts, onWidgetSubmit }: AssistantMessageViewPro
                     }
 
                     const Cmp = def.Component as React.ComponentType<any>;
+
+                    const handleSubmit = async (values: any) => {
+                        if (typeof part.onSubmit === 'function') {
+                            const result = await part.onSubmit(values);
+                            if (result) {
+                                appendMessage(result);
+                            }
+                        }
+                    };
+
                     return (
                         <div key={index} className="assistant-widget">
-                            <Cmp
-                                {...(parsed.data as any)}
-                                onSubmit={(values: any) => void onWidgetSubmit(part, values)}
-                            />
+                            <Cmp {...(parsed.data as any)} onSubmit={handleSubmit} />
                         </div>
                     );
                 }

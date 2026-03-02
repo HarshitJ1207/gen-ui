@@ -1,4 +1,5 @@
 import type { AssistantMessage } from '../chatTypes';
+import { mockRescheduleAppointment } from '../mockApi/appointments';
 
 export function createRescheduleAppointmentMessage(): AssistantMessage {
     return {
@@ -39,6 +40,25 @@ export function createRescheduleAppointmentMessage(): AssistantMessage {
                 },
                 flowId: 'reschedule_appointment',
                 stepId: 'reschedule_form',
+                onSubmit: async (values: unknown) => {
+                    const castValues = values as Record<string, string>;
+                    const result = await mockRescheduleAppointment(castValues);
+                    const confirmationMessage: AssistantMessage = {
+                        id: `a-${Date.now()}`,
+                        role: 'assistant',
+                        parts: [
+                            {
+                                type: 'text',
+                                text: `Rescheduled appointment ${castValues.appointmentId || ''} to ${
+                                    castValues.newDate || 'your new date'
+                                } at ${castValues.newTime || 'your new time'}. Confirmation: ${
+                                    result.confirmationId
+                                }.`,
+                            },
+                        ],
+                    };
+                    return confirmationMessage;
+                },
             },
         ],
     };

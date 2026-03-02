@@ -14,6 +14,7 @@ export type WidgetMessagePart = {
     props: unknown;
     flowId?: string;
     stepId?: string;
+    onSubmit?: (values: unknown) => AssistantMessage | null | Promise<AssistantMessage | null>;
 };
 
 export type TextMessagePart = {

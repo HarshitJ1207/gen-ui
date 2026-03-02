@@ -1,5 +1,6 @@
 import type { AssistantMessage } from '../chatTypes';
 import { getAppointmentFormInitialValues } from '../llm/appointmentFormPrefill';
+import { mockBookAppointment } from '../mockApi/appointments';
 
 export async function createBookAppointmentMessage(userText: string): Promise<AssistantMessage> {
     const initialValues = await getAppointmentFormInitialValues(userText);
@@ -42,6 +43,25 @@ export async function createBookAppointmentMessage(userText: string): Promise<As
                 },
                 flowId: 'book_appointment',
                 stepId: 'appointment_form',
+                onSubmit: async (values: unknown) => {
+                    const castValues = values as Record<string, string>;
+                    const result = await mockBookAppointment(castValues);
+                    const confirmationMessage: AssistantMessage = {
+                        id: `a-${Date.now()}`,
+                        role: 'assistant',
+                        parts: [
+                            {
+                                type: 'text',
+                                text: `Booked appointment with ${
+                                    castValues.agent || 'your selected agent'
+                                } on ${castValues.date || 'your chosen date'} at ${
+                                    castValues.time || 'your chosen time'
+                                }. Confirmation: ${result.confirmationId}.`,
+                            },
+                        ],
+                    };
+                    return confirmationMessage;
+                },
             },
         ],
     };
